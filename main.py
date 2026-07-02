@@ -1,12 +1,12 @@
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from collections import defaultdict
 
 app = FastAPI()
 
-# CORS for browser grader
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,28 +37,29 @@ def home():
 @app.post("/analytics")
 def analytics(
     data: AnalyticsRequest,
-    x_api_key: str | None = Header(default=None, alias="X-API-Key")
+    x_api_key: Optional[str] = Header(default=None)
 ):
+    # Header name becomes X-API-Key automatically from x_api_key
     if x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        return JSONResponse(
+            status_code=401,
+            content={"valid": False}
+        )
 
     events = data.events
 
     total_events = len(events)
-    unique_users = len(set(event.user for event in events))
+    unique_users = len(set(e.user for e in events))
 
     revenue = 0.0
-    positive_totals = defaultdict(float)
+    user_positive_total = defaultdict(float)
 
-    for event in events:
-        if event.amount > 0:
-            revenue += event.amount
-            positive_totals[event.user] += event.amount
+    for e in events:
+        if e.amount > 0:
+            revenue += e.amount
+            user_positive_total[e.user] += e.amount
 
-    if positive_totals:
-        top_user = max(positive_totals, key=positive_totals.get)
-    else:
-        top_user = ""
+    top_user = max(user_positive_total, key=user_positive_total.get) if user_positive_total else ""
 
     return {
         "email": EMAIL,
