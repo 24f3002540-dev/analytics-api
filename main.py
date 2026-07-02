@@ -39,12 +39,8 @@ def analytics(
     data: AnalyticsRequest,
     x_api_key: Optional[str] = Header(default=None)
 ):
-    # Header name becomes X-API-Key automatically from x_api_key
     if x_api_key != API_KEY:
-        return JSONResponse(
-            status_code=401,
-            content={"valid": False}
-        )
+        return JSONResponse(status_code=401, content={"valid": False})
 
     events = data.events
 
@@ -52,14 +48,14 @@ def analytics(
     unique_users = len(set(e.user for e in events))
 
     revenue = 0.0
-    user_positive_total = defaultdict(float)
+    user_totals = defaultdict(float)
 
     for e in events:
         if e.amount > 0:
             revenue += e.amount
-            user_positive_total[e.user] += e.amount
+            user_totals[e.user] += e.amount
 
-    top_user = max(user_positive_total, key=user_positive_total.get) if user_positive_total else ""
+    top_user = max(user_totals, key=user_totals.get) if user_totals else ""
 
     return {
         "email": EMAIL,
